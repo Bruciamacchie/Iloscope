@@ -16,7 +16,7 @@
 #'
 #' @export
 
-IlotDataImport <- function() {
+IlotDataImport <- function(Nom) {
   # le code ci-dessous permet d'aller directement au répertoire qui contient le fichier source
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   setwd("..")
@@ -31,5 +31,8 @@ IlotDataImport <- function() {
     slice(1) %>%
     pull(Nom)
   zone <- st_read(paste("Data/DataBrutes/Fait",fich, sep="/"), quiet=T)
+
+  dir.create("Data/Tables")
+  save(zone, file=paste0("Data/Tables/",Nom,".Rdata"))
 }
 
