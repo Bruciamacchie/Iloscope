@@ -1,25 +1,20 @@
-#' Iloscope : creer un nouveau projet projet
+#' Iloscope : Choix du projet
 #'
-#' @description Imports des différents fichiers vecteurs constitutifs d'un projet
-#'
-#' @param projet = nom de la table en sortie
+#' @description Choix du projet en tour
 #'
 #' @examples
-#' ProjetCreer("Test")
+#' ProjetChoisir()
 #'
 #' @author Bruciamacchie Max
 #'
 #' @export
 
-ProjetChoisir <- function(Nom) {
+ProjetChoisir <- function() {
   rep <- rstudioapi::selectDirectory()
   if (is.null(rep)) {
     print("Merci de choisir un répertoire")
     stop()
   } else{
     print(paste("Le répertoire retenu est .....", rep))
-    dir.create(paste(rep, Nom, sep="/"), showWarnings=F)
-    dir.create(paste(rep, Nom, "Vecteurs", sep="/"), showWarnings=F)
-    dir.create(paste(rep, Nom,"Rasters", sep="/"), showWarnings=F)
   }
 }
