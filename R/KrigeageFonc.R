@@ -14,7 +14,7 @@
 #'
 #' @export
 
-KrigeageFonc <- function(shpZone, shpPlac, idvar=2, shpVar1=NULL, pas=50) {
+KrigeageFonc <- function(shpZone, shpPlac, grd, idvar=2, shpVar1=NULL, pas=50) {
   # ------------ Vérification
   if (missing(shpPlac)) stop("missing shpPlac")
   if (missing(shpZone)) stop("missing shpZone")
@@ -22,9 +22,6 @@ KrigeageFonc <- function(shpZone, shpPlac, idvar=2, shpVar1=NULL, pas=50) {
     shpPlac <- shpPlac %>% st_transform(st_crs(shpZone))
   }
 
-  # ------------ Creation du grid
-  grd <- st_make_grid(shpZone, cellsize=pas, what="centers") # Création grid
-  grd <- grd[shpZone]
   # ----------------- Krigeage cas1 : la prédiction ne dépend que des valeurs voisines
   names(shpPlac)[idvar] <- "Y"
   v <- variogram(Y ~ 1, data=shpPlac, cutoff=2000, width = 50)
