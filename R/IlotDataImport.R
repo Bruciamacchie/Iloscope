@@ -18,6 +18,7 @@
 IlotDataImport <- function(projet) {
   # le code ci-dessous permet d'aller directement au répertoire qui contient le fichier source
   # setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
   rep <- rstudioapi::selectDirectory()
   if (is.null(rep)) {
     print("Merci de choisir un répertoire")
@@ -67,6 +68,7 @@ IlotDataImport <- function(projet) {
   Patrimoine        <- lectureShape("Patrimoine")
   Ilots             <- lectureShape("Ilots")
   Corridors         <- lectureShape("Corridor")
+  Mature            <- lectureShape("Maturité")
 
   Equipes           <- lectureShape("Equipes")
 
@@ -74,7 +76,8 @@ IlotDataImport <- function(projet) {
   # -------- Sauvegarde ---------
   dir.create(paste(rep,"Tables", sep="/"))
   save(zone,Acces,Parcellaire,DateCoupe,Peuplement,Placette,ProtectionStatut,HorsSylv,
-       Exploitation,Captage,Patrimoine,Ilots,Corridors,Equipes,
+       Exploitation,Captage,Patrimoine,Ilots,Corridors,Mature,
+       Equipes,
        file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
 }
 
