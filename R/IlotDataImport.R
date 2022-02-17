@@ -2,8 +2,6 @@
 #'
 #' @description Imports des différents fichiers vecteurs constitutifs d'un projet
 #'
-#' @format data frame contenant près de 142 lignes et 2 variables
-#'
 #' @import sf
 #' @import tidyverse
 #' @import readxl
