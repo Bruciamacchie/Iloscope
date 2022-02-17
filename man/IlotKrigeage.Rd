@@ -2,12 +2,12 @@
 % Please edit documentation in R/IlotKrigeage.R
 \name{IlotKrigeage}
 \alias{IlotKrigeage}
-\title{Krigeage}
+\title{Krigeage des valeurs placettes}
 \usage{
 IlotKrigeage(pas = 50)
 }
 \description{
-Conversion données ponctuelles en donées surfaciques
+Conversion données ponctuelles en données surfaciques
 }
 \examples{
 k <- IlotKrigeage()

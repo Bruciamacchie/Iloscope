@@ -1,6 +1,6 @@
-#' Krigeage
+#' Krigeage des valeurs placettes
 #'
-#' @description Conversion données ponctuelles en donées surfaciques
+#' @description Conversion données ponctuelles en données surfaciques
 #'
 #' @import sf
 #' @import tidyverse
@@ -25,11 +25,11 @@ IlotKrigeage <- function(pas=50){
     load(paste(rep, fich, sep="/"))
   }
 
-  # ------------ Création GRID et variogramme ------------
+  #################### Création GRID et variogramme ####################
   grd <- st_make_grid(zone, cellsize=pas, what="centers") # Création grid
   grd <- grd[zone]
 
-  # ------------ Krigeage uniquement avec distance ------------
+  #################### Krigeage uniquement avec distance ####################
 
   # ------------ Krigeage Gha
   v <- variogram(GTOT ~ 1, data=Placette, cutoff=2000, width = 50)
