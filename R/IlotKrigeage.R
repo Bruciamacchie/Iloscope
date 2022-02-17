@@ -8,7 +8,8 @@
 #' @import gstat
 #'
 #' @examples
-#' IlotKrigeage()
+#' k <- IlotKrigeage()
+#' plot(k["var1.pred"])
 #'
 #' @author Bruciamacchie Max
 #'
@@ -29,13 +30,16 @@ IlotKrigeage <- function(pas=50){
   grd <- grd[zone]
 
   # ------------ Krigeage uniquement avec distance ------------
+
+  # ------------ Krigeage Gha
   v <- variogram(GTOT ~ 1, data=Placette, cutoff=2000, width = 50)
   vmf <- fit.variogram(v, vgm(c("Exp", "Sph", "Mat", "Ste"), psill=100, range = 2000, nugget = 1))
   plot(v, pl = T, model = vmf)
   k <- krige(GTOT ~ 1, locations = Placette, newdata = grd, model = vmf) %>%
     st_as_sf()
 
-  return(k)
-  # plot(k["var1.pred"])
   st_write(k, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"))
+
+  return(k)
+
 }
