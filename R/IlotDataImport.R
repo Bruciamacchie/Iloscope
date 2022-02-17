@@ -19,13 +19,7 @@ IlotDataImport <- function(projet) {
   # le code ci-dessous permet d'aller directement au répertoire qui contient le fichier source
   # setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-  rep <- rstudioapi::selectDirectory()
-  if (is.null(rep)) {
-    print("Merci de choisir un répertoire")
-    stop()
-  } else{
-    print(paste("Le répertoire retenu est .....", rep))
-  }
+  rep <- ProjetChoisir()
 
   # -------- Lecture du fichier Couches.xlsx ---------
   couches <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Data")

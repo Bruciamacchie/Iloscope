@@ -17,4 +17,5 @@ ProjetChoisir <- function() {
   } else{
     print(paste("Le répertoire retenu est .....", rep))
   }
+  return(rep)
 }
