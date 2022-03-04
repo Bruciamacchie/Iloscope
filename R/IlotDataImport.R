@@ -15,14 +15,19 @@
 #'
 #' @export
 
-IlotDataImport <- function(MaTable) {
+IlotDataImport <- function(projet = NULL) {
   # le code ci-dessous permet d'aller directement au répertoire qui contient le fichier source
   # setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
   rep <- ProjetChoisir()
 
   # -------- Lecture du fichier Couches.xlsx ---------
-  couches <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Couches")
+  couches  <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Couches")
+  DataPlac <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Placettes")
+  Haut     <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Haut")
+  DataUG   <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="ParcelleUG")
+  ParamEss <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="ParamEss")
+  EssReg   <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="EssReg")
 
   # -------- Fonction Extractions du fichier Couches.xlsx ---------
   lectureShape <- function(theme, select=0){
@@ -36,7 +41,7 @@ IlotDataImport <- function(MaTable) {
     shp <- st_read(paste(rep,"Vecteurs",nom, sep="/"), quiet=T) %>%
       st_transform(2154)
 
-    if (!is.na(buffer) & is.numeric(buffer)) {
+    if (is.numeric(buffer)) {
       zoneB <- st_geometry(st_buffer(perim, dist=buffer))
       shp <- st_intersection(shp, zoneB)
     }
@@ -52,30 +57,55 @@ IlotDataImport <- function(MaTable) {
   perim <- lectureShape("Périmètre") %>% dplyr::select(geom)
 
   # -------- Import des vecteurs ---------
-  Acces             <- lectureShape("Acces")
-  Parcellaire       <- lectureShape("Parcellaire")
-  Peuplement        <- lectureShape("Peuplement", 1)
-  DateCoupe         <- lectureShape("DateCoupe", 1)
-  Placette          <- lectureShape("Placette")
+  for (i in 2:dim(couches)[1]) {
+    shp <- lectureShape(couches$Theme[i])
+    assign(couches$Theme[i], shp)
+  }
 
-  ProtectionStatut  <- lectureShape("ProtectionStatut")
-  HorsSylv          <- lectureShape("HorsSylviculture")
-  Exploitation      <- lectureShape("Exploitation")
-  Captage           <- lectureShape("Captage")
-  Patrimoine        <- lectureShape("Patrimoine")
-  Ilots             <- lectureShape("Ilots")
-  Corridors         <- lectureShape("Corridor")
-  Mature            <- lectureShape("Maturité")
+  # -------- Fusion tables ---------
+  if (dim(DataPlac)[1] > 0) {
 
-  Equipes           <- lectureShape("Equipes")
-  Solution          <- lectureShape("Solution")
-  Organisation      <- lectureShape("Organisation")
+    PlacGtot <- DataPlac %>%
+      filter(is.na(Catégorie)) %>%
+      group_by(NumPlac) %>%
+      summarise(GTOT = sum(Gha))
+
+    PlacGtotEss <- DataPlac %>%
+      filter(is.na(Catégorie)) %>%
+      dplyr::select(-Catégorie) %>%
+      left_join(Placette[,c("NumPlac", "geom")], by = "NumPlac")
+
+    PlacMature <- DataPlac %>%
+      left_join(ParamEss, by = c("Essence", "Catégorie")) %>%
+      mutate(Mature = CoefftMature * Gha,
+             Vha = FH * Gha,
+             VcHa = Vha * PU) %>%
+      group_by(NumPlac) %>%
+      summarise(Mature = sum(Mature, na.rm=T),
+                Vha = sum(Vha, na.rm=T),
+                VcHa = sum(VcHa, na.rm=T))
+
+    Placette <- Placette %>%
+      dplyr::select(NumPlac, geom) %>%
+      left_join(PlacGtot, by = "NumPlac") %>%
+      left_join(PlacMature, by = "NumPlac")
+
+  }
+
+  if (dim(DataUG)[1] > 0) {
+    ParcelleUG <- ParcelleUG %>%
+      dplyr::select(IIDTN_FRT,IIDTN_PRF,NumParc,NumUG) %>%
+      left_join(DataUG,  by = c("IIDTN_FRT", "IIDTN_PRF", "NumParc", "NumUG")) %>%
+      distinct()
+  }
 
   # -------- Sauvegarde ---------
-  dir.create(paste(rep,"Tables", sep="/"))
-  save(perim,Acces,Parcellaire,DateCoupe,Peuplement,Placette,ProtectionStatut,HorsSylv,
-       Exploitation,Captage,Patrimoine,Ilots,Corridors,Mature,
-       Equipes,
-       file= paste0(paste(rep,"Tables", sep="/"),"/", MaTable, ".Rdata"))
+  dir.create(paste(rep,"Tables", sep="/"), showWarnings = F)
+  rm(couches, lectureShape, i, shp)
+  if (is.null(projet)) {
+    projet= "MaTable"
+  }
+  save(list = ls(all.names = TRUE), file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
+  # save.image(file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
 }
 

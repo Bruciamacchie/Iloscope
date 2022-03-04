@@ -16,13 +16,15 @@
 #' @export
 
 
-IlotKrigeage <- function(pas=50){
+IlotKrigeage <- function(pas=25){
 
   rep <- ProjetChoisir()
   verif <- list.dirs(rep, full.names=F, recursive = F)
   if("Tables" %in% verif) {
     fich <- list.files(rep, pattern="\\.Rdata$", recursive=T)
     load(paste(rep, fich, sep="/"))
+  } else {
+    stop("Merci d'utiliser la fonction IlotDataImport")
   }
 
   #################### Création GRID et variogramme ####################
@@ -31,14 +33,27 @@ IlotKrigeage <- function(pas=50){
 
   #################### Krigeage uniquement avec distance ####################
 
-  # ------------ Krigeage Gha
-  v <- variogram(GTOT ~ 1, data=Placette, cutoff=2000, width = 50)
-  vmf <- fit.variogram(v, vgm(c("Exp", "Sph", "Mat", "Ste"), psill=100, range = 2000, nugget = 1))
-  plot(v, pl = T, model = vmf)
-  k <- krige(GTOT ~ 1, locations = Placette, newdata = grd, model = vmf) %>%
-    st_as_sf()
+  # ------------ Kriggeage Gha
+  pos <- which("GTOT" == names(Placette))[[1]]
+  Gha <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  names(Gha) <- c("Gha", "GhaVar", "geometry")
+  st_write(Gha, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"), delete_layer = TRUE)
 
-  st_write(k, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"))
+  # ------------ Krigeage VcHa
+
+
+  # ------------ Krigeage Maturite
+  pos <- which("MATURE" == names(Placette))[[1]]
+  Gmature <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  names(Gmature) <- c("Mature", "MatureVar", "geometry")
+  st_write(Gmature, paste(rep, "Rasters/PredictGmature.gpkg", sep= "/"), delete_layer = TRUE)
+
+
+  # ------------ Krigeage AnCoupe
+
+
+
+
 
   return(k)
 

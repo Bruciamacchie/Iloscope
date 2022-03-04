@@ -4,7 +4,7 @@
 \alias{IlotDataImport}
 \title{Liste et import les couches vecteurs necessaires a l'iloscope}
 \usage{
-IlotDataImport(projet)
+IlotDataImport(projet = NULL)
 }
 \arguments{
 \item{projet}{= nom de la table en sortie}

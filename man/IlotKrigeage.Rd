@@ -4,7 +4,7 @@
 \alias{IlotKrigeage}
 \title{Krigeage des valeurs placettes}
 \usage{
-IlotKrigeage(pas = 50)
+IlotKrigeage(pas = 25)
 }
 \description{
 Conversion données ponctuelles en données surfaciques
