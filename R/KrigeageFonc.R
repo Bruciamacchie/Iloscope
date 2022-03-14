@@ -6,6 +6,7 @@
 #' @import tidyverse
 #' @import stars
 #' @import gstat
+#' @import automap
 #'
 #' @examples
 #' k <- IlotKrigeage()
@@ -14,7 +15,8 @@
 #'
 #' @export
 
-KrigeageFonc <- function(grd, shpPlac, idvar=2, idvarX=3, pas=50) {
+KrigeageFonc <- function(grd, shpPlac, idvar=2, pas=50) {
+  # shpPlac = Placette
   # ------------ Vérification
   if (missing(shpPlac)) stop("missing shpPlac")
   if (missing(grd)) stop("missing grd")
@@ -24,21 +26,20 @@ KrigeageFonc <- function(grd, shpPlac, idvar=2, idvarX=3, pas=50) {
 
   # ----------------- Krigeage cas1 : la prédiction ne dépend que des valeurs voisines
   names(shpPlac)[idvar] <- "Y"
-  v <- variogram(Y ~ 1, data=shpPlac, cutoff=2000, width = 50)
-  vmf <- fit.variogram(v, vgm(c("Exp", "Sph", "Mat", "Ste"), psill=100, range = 2000, nugget = 1))
-  plot(v, pl = T, model = vmf)
-  k <- krige(Y ~ 1, locations = shpPlac, newdata = grd, model = vmf) %>%
-    st_as_sf()
-
-  # ----------------- Krigeage cas2 : la prédiction dépend des peuplements
-
-
-  # names(shpPlac)[idvar] <- "Y"
-  # v <- variogram(Y ~ 1, data=shpPlac, cutoff=2000, width = 50)
+  shpPlac <- shpPlac %>%
+    mutate(Y = ifelse(is.na(Y), 0, Y))
+  # v <- variogram(Y ~ 1, data=shpPlac, cutoff=2500, width = 50)
   # vmf <- fit.variogram(v, vgm(c("Exp", "Sph", "Mat", "Ste"), psill=100, range = 2000, nugget = 1))
   # plot(v, pl = T, model = vmf)
   # k <- krige(Y ~ 1, locations = shpPlac, newdata = grd, model = vmf) %>%
   #   st_as_sf()
+
+  k = autoKrige(Y ~ 1, as(shpPlac, "Spatial"), as(grd, "Spatial"))
+
+  k <- k$krige_output %>%
+    st_as_sf() %>%
+    dplyr::select(var1.pred)
+
 
   return(k)
 }

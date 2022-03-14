@@ -5,7 +5,9 @@
 #' @import sf
 #' @import tidyverse
 #' @import readxl
+#' @import rmapshaper
 #'
+#' @param rep = dossier en cours
 #' @param projet = nom de la table en sortie
 #'
 #' @examples
@@ -15,11 +17,11 @@
 #'
 #' @export
 
-IlotDataImport <- function(projet = NULL) {
-  # le code ci-dessous permet d'aller directement au répertoire qui contient le fichier source
-  # setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+IlotDataImport <- function(rep, projet = NULL) {
 
-  rep <- ProjetChoisir()
+  # if(!("rep" %in% ls())) {
+  #   rep <- ProjetChoisir()
+  # }
 
   # -------- Lecture du fichier Couches.xlsx ---------
   couches  <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Couches")
@@ -36,20 +38,23 @@ IlotDataImport <- function(projet = NULL) {
       slice(1)
     nom = pull(fich, Nom)
     buffer = pull(fich, Buffer)
-    buffer <- ifelse(is.na(buffer),0,buffer)
+    buffer <- ifelse(is.na(buffer), 0, buffer)
 
     shp <- st_read(paste(rep,"Vecteurs",nom, sep="/"), quiet=T) %>%
       st_transform(2154)
 
-    if (is.numeric(buffer)) {
-      zoneB <- st_geometry(st_buffer(perim, dist=buffer))
-      shp <- st_intersection(shp, zoneB)
+    if (theme != "Périmètre") {
+      if (is.numeric(buffer)) {
+        zoneB <- st_geometry(st_buffer(perim, dist=buffer))
+        shp <- st_intersection(shp, zoneB)
+      }
+      if (select !=0) {
+        champ = pull(fich, Champ)
+        shp <- shp %>%
+          dplyr::select(champ)
+      }
     }
-    if (select !=0) {
-      champ = pull(fich, Champ)
-      shp <- shp %>%
-        dplyr::select(champ)
-    }
+
     return(shp)
   }
 
@@ -70,11 +75,6 @@ IlotDataImport <- function(projet = NULL) {
       group_by(NumPlac) %>%
       summarise(GTOT = sum(Gha))
 
-    PlacGtotEss <- DataPlac %>%
-      filter(is.na(Catégorie)) %>%
-      dplyr::select(-Catégorie) %>%
-      left_join(Placette[,c("NumPlac", "geom")], by = "NumPlac")
-
     PlacMature <- DataPlac %>%
       left_join(ParamEss, by = c("Essence", "Catégorie")) %>%
       mutate(Mature = CoefftMature * Gha,
@@ -88,7 +88,15 @@ IlotDataImport <- function(projet = NULL) {
     Placette <- Placette %>%
       dplyr::select(NumPlac, geom) %>%
       left_join(PlacGtot, by = "NumPlac") %>%
-      left_join(PlacMature, by = "NumPlac")
+      left_join(PlacMature, by = "NumPlac") %>%
+      mutate(GTOT = ifelse(is.na(GTOT), 0, GTOT),
+             Vha = ifelse(is.na(Vha), 0, Vha),
+             VcHa = ifelse(is.na(VcHa), 0, VcHa),
+             Mature = ifelse(is.na(Mature), 50, Mature))
+
+    PlacGtotEss <- DataPlac %>%
+      filter(is.na(Catégorie)) %>%
+      dplyr::select(-Catégorie)
 
   }
 
@@ -99,6 +107,15 @@ IlotDataImport <- function(projet = NULL) {
       distinct()
   }
 
+
+  # -------- Lignes ---------
+  Lignes <- ParcelleUG %>%
+    group_by(IIDTN_FRT, IIDTN_PRF, NumParc) %>%
+    summarise() %>%
+    ms_lines()  %>%
+    ms_explode()
+
+
   # -------- Sauvegarde ---------
   dir.create(paste(rep,"Tables", sep="/"), showWarnings = F)
   rm(couches, lectureShape, i, shp)
@@ -106,6 +123,7 @@ IlotDataImport <- function(projet = NULL) {
     projet= "MaTable"
   }
   save(list = ls(all.names = TRUE), file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
-  # save.image(file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
+
+  return(perim)
 }
 

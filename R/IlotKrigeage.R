@@ -5,20 +5,26 @@
 #' @import sf
 #' @import tidyverse
 #' @import stars
-#' @import gstat
+#' @import automap
+#'
+#' @param rep = dossier en cours
+#' @param shp = perimètre
+#' @param pas = résolution
 #'
 #' @examples
-#' k <- IlotKrigeage()
-#' plot(k["var1.pred"])
+#' IlotKrigeage(perim)
 #'
 #' @author Bruciamacchie Max
 #'
 #' @export
 
 
-IlotKrigeage <- function(pas=25){
+IlotKrigeage <- function(rep, shp, pas=25){
+  # shp = perim
+  # if(!("rep" %in% ls())) {
+  #   rep <- ProjetChoisir()
+  # }
 
-  rep <- ProjetChoisir()
   verif <- list.dirs(rep, full.names=F, recursive = F)
   if("Tables" %in% verif) {
     fich <- list.files(rep, pattern="\\.Rdata$", recursive=T)
@@ -28,33 +34,39 @@ IlotKrigeage <- function(pas=25){
   }
 
   #################### Création GRID et variogramme ####################
-  grd <- st_make_grid(zone, cellsize=pas, what="centers") # Création grid
-  grd <- grd[zone]
+  grd <- st_make_grid(shp, cellsize=pas, what="centers") # Création grid
+  grd <- grd[shp]
 
   #################### Krigeage uniquement avec distance ####################
 
-  # ------------ Kriggeage Gha
+  # ------------ Krigeage Gha
   pos <- which("GTOT" == names(Placette))[[1]]
   Gha <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
-  names(Gha) <- c("Gha", "GhaVar", "geometry")
+  names(Gha) <- c("Gha", "geometry")
   st_write(Gha, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage VcHa
-
+  pos <- which("VcHa" == names(Placette))[[1]]
+  VcHa <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  names(VcHa) <- c("VcHa", "geometry")
+  st_write(VcHa, paste(rep, "Rasters/PredictVcHa.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage Maturite
-  pos <- which("MATURE" == names(Placette))[[1]]
+  pos <- which("Mature" == names(Placette))[[1]]
   Gmature <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
-  names(Gmature) <- c("Mature", "MatureVar", "geometry")
+  names(Gmature) <- c("Mature", "geometry")
   st_write(Gmature, paste(rep, "Rasters/PredictGmature.gpkg", sep= "/"), delete_layer = TRUE)
 
+  #################### Extraction ####################
 
-  # ------------ Krigeage AnCoupe
+  # ------------ Info AnCoupe
+  Coupe <- ParcelleUG %>%
+    dplyr::select(DateCoupe)
 
+  AnCoupe <- grd %>%
+    st_sf() %>%
+    st_intersection(Coupe)
 
-
-
-
-  return(k)
+  st_write(AnCoupe, paste(rep, "Rasters/AnCoupe.gpkg", sep= "/"), delete_layer = TRUE)
 
 }

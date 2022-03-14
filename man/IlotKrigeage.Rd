@@ -4,14 +4,20 @@
 \alias{IlotKrigeage}
 \title{Krigeage des valeurs placettes}
 \usage{
-IlotKrigeage(pas = 25)
+IlotKrigeage(rep, shp, pas = 25)
+}
+\arguments{
+\item{rep}{= dossier en cours}
+
+\item{shp}{= perimètre}
+
+\item{pas}{= résolution}
 }
 \description{
 Conversion données ponctuelles en données surfaciques
 }
 \examples{
-k <- IlotKrigeage()
-plot(k["var1.pred"])
+IlotKrigeage(perim)
 
 }
 \author{
