@@ -17,7 +17,7 @@
 #'
 #' @export
 
-IlotDataImport <- function(rep, projet = "MonIlo") {
+IlotDataImport <- function(rep, projet = NULL) {
 
   # if(!("rep" %in% ls())) {
   #   rep <- ProjetChoisir()
