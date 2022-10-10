@@ -1,4 +1,4 @@
-#' Iloscope : Choix du projet
+#' Iloscope : Choix du projet (c'est pas terrible)
 #'
 #' @description Choix du projet en tour
 #'
