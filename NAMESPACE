@@ -3,7 +3,7 @@
 export(IlotArchive)
 export(IlotDataImport)
 export(IlotKrigeage)
-export(IlotPrintEquipe)
+export(IlotPrintSession)
 export(KrigeageFonc)
 export(ProjetChoisir)
 export(ProjetCreer)
