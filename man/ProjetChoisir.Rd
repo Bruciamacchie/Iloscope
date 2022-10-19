@@ -2,7 +2,7 @@
 % Please edit documentation in R/ProjetChoisir.R
 \name{ProjetChoisir}
 \alias{ProjetChoisir}
-\title{Iloscope : Choix du projet}
+\title{Iloscope : Choix du projet (c'est pas terrible)}
 \usage{
 ProjetChoisir()
 }

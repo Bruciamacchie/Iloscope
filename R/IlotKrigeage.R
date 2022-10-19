@@ -41,19 +41,19 @@ IlotKrigeage <- function(rep, shp, pas=25){
 
   # ------------ Krigeage Gha
   pos <- which("GTOT" == names(Placette))[[1]]
-  Gha <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  Gha <- KrigeageFonc(grd, Placette, idvar=pos)
   names(Gha) <- c("Gha", "geometry")
   st_write(Gha, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage VcHa
   pos <- which("VcHa" == names(Placette))[[1]]
-  VcHa <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  VcHa <- KrigeageFonc(grd, Placette, idvar=pos)
   names(VcHa) <- c("VcHa", "geometry")
   st_write(VcHa, paste(rep, "Rasters/PredictVcHa.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage Maturite
   pos <- which("Mature" == names(Placette))[[1]]
-  Gmature <- KrigeageFonc(grd, Placette, idvar=pos, pas=25)
+  Gmature <- KrigeageFonc(grd, Placette, idvar=pos)
   names(Gmature) <- c("Mature", "geometry")
   st_write(Gmature, paste(rep, "Rasters/PredictGmature.gpkg", sep= "/"), delete_layer = TRUE)
 

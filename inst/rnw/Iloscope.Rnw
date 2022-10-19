@@ -1,5 +1,5 @@
-
 \documentclass[a4paper]{article}
+
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage[french]{babel}
@@ -33,8 +33,6 @@ options(width=45)
 opts_knit$set(eval.after = 'fig.cap') # evaluate fig.cap after the chunk
 @
 
-% autres options
-% out.extra='scale=1.25', out.width=NULL, out.extra='angle=90'
 
 <<Initialisation,echo=F,cache=F,include=F,message=F>>=
 # ----------- lancement des librairies
@@ -44,13 +42,12 @@ library(grid)
 library(gridExtra)
 library(xtable)
 library(raster)
-library(gdistance)
 library(tcltk)
 library(ggthemes)
 library(units)
-library(rgeos)
-library(iloscopes)
-library(fasterize)
+# library(rgeos)
+# library(iloscopes)
+# library(fasterize)
 
 # ----------- Import ----
 rm(list = ls()) # fait le menage dans l environnement

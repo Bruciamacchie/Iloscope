@@ -4,18 +4,13 @@
 \alias{IlotDataImport}
 \title{Liste et import les couches vecteurs necessaires a l'iloscope}
 \usage{
-IlotDataImport(rep, projet = NULL)
-}
-\arguments{
-\item{rep}{= dossier en cours}
-
-\item{projet}{= nom de la table en sortie}
+IlotDataImport()
 }
 \description{
 Imports des différents fichiers vecteurs constitutifs d'un projet
 }
 \examples{
-IlotDataImport("MotteServolex")
+IlotDataImport(rep, "MotteServolex")
 
 }
 \author{

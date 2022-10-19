@@ -7,29 +7,34 @@
 #' @import readxl
 #' @import rmapshaper
 #'
-#' @param rep = dossier en cours
-#' @param projet = nom de la table en sortie
-#'
 #' @examples
-#' IlotDataImport("MotteServolex")
+#' IlotDataImport(rep, "MotteServolex")
 #'
 #' @author Bruciamacchie Max
 #'
 #' @export
 
-IlotDataImport <- function(rep, projet = NULL) {
+IlotDataImport <- function() {
+  rm(list = ls())
+  rep <- ProjetChoisir()
 
-  # if(!("rep" %in% ls())) {
-  #   rep <- ProjetChoisir()
-  # }
+  Nomfichs <- list.files(paste(rep, "Excel", sep="/"), pattern = "\\.xlsx$")
+  if (length(Nomfichs) > 1) {
+    NomTemp <- tk_select.list(as.character(Nomfichs), preselect = NULL,
+                            multiple = FALSE, title = "Choisir une fichier")
+
+  } else{
+    NomTemp <- fichs[1]
+  }
 
   # -------- Lecture du fichier Couches.xlsx ---------
-  couches  <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Couches")
-  DataPlac <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Placettes")
-  Haut     <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="Haut")
-  DataUG   <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="ParcelleUG")
-  ParamEss <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="ParamEss")
-  EssReg   <- read_excel(paste(rep,"Couches.xlsx", sep="/"), sheet="EssReg")
+  couches  <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="Couches")
+  DataPlac <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="Placettes")
+  # Haut     <- read_excel(paste(rep,fich, sep="/"), sheet="Haut")
+  DataUG   <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="ParcelleUG")
+  ParamEss <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="ParamEss")
+  EssReg   <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="EssReg")
+  Cout     <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="CoutEspece")
 
   # -------- Fonction Extractions du fichier Couches.xlsx ---------
   lectureShape <- function(theme, select=0){
@@ -41,7 +46,8 @@ IlotDataImport <- function(rep, projet = NULL) {
     buffer <- ifelse(is.na(buffer), 0, buffer)
 
     shp <- st_read(paste(rep,"Vecteurs",nom, sep="/"), quiet=T) %>%
-      st_transform(2154)
+      st_transform(2154) %>%
+      st_make_valid()
 
     if (theme != "Périmètre") {
       if (is.numeric(buffer)) {
@@ -71,9 +77,9 @@ IlotDataImport <- function(rep, projet = NULL) {
   if (dim(DataPlac)[1] > 0) {
 
     PlacGtot <- DataPlac %>%
-      filter(is.na(Catégorie)) %>%
+      filter(!is.na(Catégorie)) %>%
       group_by(NumPlac) %>%
-      summarise(GTOT = sum(Gha))
+      dplyr::summarise(GTOT = sum(Gha))
 
     PlacMature <- DataPlac %>%
       left_join(ParamEss, by = c("Essence", "Catégorie")) %>%
@@ -85,7 +91,7 @@ IlotDataImport <- function(rep, projet = NULL) {
                 Vha = sum(Vha, na.rm=T),
                 VcHa = sum(VcHa, na.rm=T))
 
-    Placette <- Placette %>%
+    Placettes <- Placettes %>%
       dplyr::select(NumPlac, geom) %>%
       left_join(PlacGtot, by = "NumPlac") %>%
       left_join(PlacMature, by = "NumPlac") %>%
@@ -95,22 +101,22 @@ IlotDataImport <- function(rep, projet = NULL) {
              Mature = ifelse(is.na(Mature), 50, Mature))
 
     PlacGtotEss <- DataPlac %>%
-      filter(is.na(Catégorie)) %>%
+      filter(!is.na(Catégorie)) %>%
       dplyr::select(-Catégorie)
 
   }
 
   if (dim(DataUG)[1] > 0) {
     ParcelleUG <- ParcelleUG %>%
-      dplyr::select(IIDTN_FRT,IIDTN_PRF,NumParc,NumUG) %>%
-      left_join(DataUG,  by = c("IIDTN_FRT", "IIDTN_PRF", "NumParc", "NumUG")) %>%
+      dplyr::select(IIDTN_FRT,IIDTN_PRF,NumPar,NumUG) %>%
+      left_join(DataUG,  by = c("IIDTN_FRT", "IIDTN_PRF", "NumPar", "NumUG")) %>%
       distinct()
   }
 
 
   # -------- Lignes ---------
   Lignes <- ParcelleUG %>%
-    group_by(IIDTN_FRT, IIDTN_PRF, NumParc) %>%
+    group_by(IIDTN_FRT, IIDTN_PRF, NumPar) %>%
     summarise() %>%
     ms_lines()  %>%
     ms_explode()
@@ -118,11 +124,9 @@ IlotDataImport <- function(rep, projet = NULL) {
 
   # -------- Sauvegarde ---------
   dir.create(paste(rep,"Tables", sep="/"), showWarnings = F)
+  # nom = NomProjet
   rm(couches, lectureShape, i, shp)
-  if (is.null(projet)) {
-    projet= "MaTable"
-  }
-  save(list = ls(all.names = TRUE), file= paste0(paste(rep,"Tables", sep="/"),"/", projet, ".Rdata"))
+  save(list = ls(all.names = TRUE), file= paste0(rep,"/Tables/Archives.Rdata"))
 
   return(perim)
 }

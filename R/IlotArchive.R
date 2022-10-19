@@ -15,7 +15,7 @@ IlotArchive <- function(rep){
 
   verif <- list.dirs(rep, full.names=F, recursive = F)
   if("Tables" %in% verif) {
-    fich <- list.files(rep, pattern="\\.Rdata$", recursive=F)
+    fich <- list.files(paste0(rep, "/Tables"), pattern="\\.Rdata$", recursive=F)
     # load(paste(rep, fich, sep="/"))
   } else {
     stop("Merci d'utiliser la fonction IlotDataImport")

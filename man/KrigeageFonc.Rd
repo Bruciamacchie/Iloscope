@@ -4,7 +4,7 @@
 \alias{KrigeageFonc}
 \title{Fonction Krigeage}
 \usage{
-KrigeageFonc(grd, shpPlac, idvar = 2, pas = 50)
+KrigeageFonc(grd, shpPlac, idvar = 2)
 }
 \description{
 Fonction krigeage pour conversion données ponctuelles
