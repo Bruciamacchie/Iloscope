@@ -128,6 +128,9 @@ IlotDataImport <- function() {
   rm(couches, lectureShape, i, shp)
   save(list = ls(all.names = TRUE), file= paste0(rep,"/Tables/Archives.Rdata"))
 
-  return(perim)
+  out <- c(rep, perim)
+  names(out) <- c("rep", "perim")
+
+  return(out)
 }
 

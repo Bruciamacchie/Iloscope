@@ -27,8 +27,12 @@ IlotKrigeage <- function(rep, shp, pas=25){
 
   verif <- list.dirs(rep, full.names=F, recursive = F)
   if("Tables" %in% verif) {
-    fich <- list.files(rep, pattern="\\.Rdata$", recursive=F)
-    load(paste(rep, fich, sep="/"))
+    fichs <- list.files(paste0(rep,"/Tables"), pattern="\\.Rdata$", recursive=F)
+    if("Archives.Rdata" %in% fichs) {
+      load(paste(rep,"tables/Archives.Rdata", sep="/"))
+    } else {
+      stop("Merci d'utiliser la fonction IlotDataImport")
+    }
   } else {
     stop("Merci d'utiliser la fonction IlotDataImport")
   }
@@ -40,20 +44,20 @@ IlotKrigeage <- function(rep, shp, pas=25){
   #################### Krigeage uniquement avec distance ####################
 
   # ------------ Krigeage Gha
-  pos <- which("GTOT" == names(Placette))[[1]]
-  Gha <- KrigeageFonc(grd, Placette, idvar=pos)
+  pos <- which("GTOT" == names(Placettes))[[1]]
+  Gha <- KrigeageFonc(grd, Placettes, idvar=pos)
   names(Gha) <- c("Gha", "geometry")
   st_write(Gha, paste(rep, "Rasters/PredictGha.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage VcHa
-  pos <- which("VcHa" == names(Placette))[[1]]
-  VcHa <- KrigeageFonc(grd, Placette, idvar=pos)
+  pos <- which("VcHa" == names(Placettes))[[1]]
+  VcHa <- KrigeageFonc(grd, Placettes, idvar=pos)
   names(VcHa) <- c("VcHa", "geometry")
   st_write(VcHa, paste(rep, "Rasters/PredictVcHa.gpkg", sep= "/"), delete_layer = TRUE)
 
   # ------------ Krigeage Maturite
-  pos <- which("Mature" == names(Placette))[[1]]
-  Gmature <- KrigeageFonc(grd, Placette, idvar=pos)
+  pos <- which("Mature" == names(Placettes))[[1]]
+  Gmature <- KrigeageFonc(grd, Placettes, idvar=pos)
   names(Gmature) <- c("Mature", "geometry")
   st_write(Gmature, paste(rep, "Rasters/PredictGmature.gpkg", sep= "/"), delete_layer = TRUE)
 
