@@ -1,24 +1,18 @@
-# Etape 0 : Penser à installer les librairies suivantes
-# puis à les activer
+# Etape 0 : Penser à installer la librairie librarian
+# Cette étape n'est à faire qu'une fois
+install.packages("librarian")
 
-# -------- Librairies -------
-library(tidyverse)
-library(sf)
-library(rmapshaper)
-library(readxl)
+# -------- Librairies à installer si besoin et à activer -------
+librarian::shelf(tidyverse,sf,rmapshaper,readxl,stars,automap,knitr,tcltk)
 # library(gstat)
-library(stars)
-library(automap)
-library(Iloscopes)
-library(knitr)
-library(tcltk)
 
 # ------- Etape 1 : installer le package Iloscope -----------
 
 library(Iloscopes)
 
 # -------  Etape 2 : import des données du classeur -----------
-VerifIlot() # à modifier
+VerifData(rep)
+
 res <- Iloscopes::IlotDataImport()
 rep <- res$rep
 perim <- res$perim

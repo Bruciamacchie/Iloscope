@@ -14,13 +14,13 @@
 
 
 IlotPrintSession <- function(rep) {
-  setwd(rep)
-  Nomfichs <- list.files("Tables")
-  if (length(Nomfichs) == 0) {
+  # setwd(rep)
+  Nomfichs <- list.files(paste(rep,"Tables", sep="/"))
+  if (!("Archives.Rdata" %in% Nomfichs)) {
     print("ATTENTION ...... Il faut d'abord créer une archive avec la fonction IlotDataImport")
     stop()
   }
-  load("Tables/Archives.Rdata")
+  load(paste(rep,"Tables/Archives.Rdata", sep="/"))
 
   sessions <- unique(Equipes$SESSION)
   NomTemp <- tk_select.list(as.character(sessions), preselect = NULL,
@@ -34,20 +34,26 @@ IlotPrintSession <- function(rep) {
 
     NumEquipe = EnTour$NUMEQUIPE[i]
     Equipe <- Equipes %>%  filter(NUMEQUIPE == NumEquipe)
-    save(Equipe, file="Tables/Equipe.Rdata")
+    save(Equipe, file=paste(rep,"Tables/Equipe.Rdata", sep="/"))
+
+    fpath <- system.file("extdata/rnw", "Iloscope1.Rnw", package="Iloscopes")
+    dir.create(paste(rep,"PDF", sep="/"), showWarnings =F)
 
     knit2pdf(
-      input = "Iloscope1.Rnw",
+      input = fpath,
       compiler = "pdflatex",
+      envir = globalenv(),
       quiet = TRUE
     )
 
     file.rename("Iloscope1.pdf", paste0("Iloscope_équipe", NumEquipe, ".pdf"))
+    file.copy(paste0("Iloscope_équipe", NumEquipe, ".pdf"), "PDF")
+    unlink(paste0("Iloscope_équipe", NumEquipe, ".pdf"))
   }
 
-  unlink(paste0("Iloscope1.tex"))
-  unlink(paste0("Iloscope1.log"))
-  unlink(paste0("Iloscope1-concordance.tex"))
+  # unlink(paste0("Iloscope1.tex"))
+  # unlink(paste0("Iloscope1.log"))
+  # unlink(paste0("Iloscope1-concordance.tex"))
 
 
 }

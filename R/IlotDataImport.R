@@ -24,7 +24,7 @@ IlotDataImport <- function() {
                             multiple = FALSE, title = "Choisir une fichier")
 
   } else{
-    NomTemp <- fichs[1]
+    NomTemp <- Nomfichs[1]
   }
 
   # -------- Lecture du fichier Couches.xlsx ---------
@@ -49,7 +49,7 @@ IlotDataImport <- function() {
       st_transform(2154) %>%
       st_make_valid()
 
-    if (theme != "Périmètre") {
+    if (theme != "Perimetre") {
       if (is.numeric(buffer)) {
         zoneB <- st_geometry(st_buffer(perim, dist=buffer))
         shp <- st_intersection(shp, zoneB)
@@ -65,7 +65,7 @@ IlotDataImport <- function() {
   }
 
   # -------- Zone d'étude ---------
-  perim <- lectureShape("Périmètre") %>% dplyr::select(geom)
+  perim <- lectureShape("Perimetre") %>% dplyr::select(geom)
 
   # -------- Import des vecteurs ---------
   for (i in 2:dim(couches)[1]) {
@@ -77,12 +77,12 @@ IlotDataImport <- function() {
   if (dim(DataPlac)[1] > 0) {
 
     PlacGtot <- DataPlac %>%
-      filter(!is.na(Catégorie)) %>%
+      filter(!is.na(Categorie)) %>%
       group_by(NumPlac) %>%
       dplyr::summarise(GTOT = sum(Gha))
 
     PlacMature <- DataPlac %>%
-      left_join(ParamEss, by = c("Essence", "Catégorie")) %>%
+      left_join(ParamEss, by = c("Essence", "Categorie")) %>%
       mutate(Mature = CoefftMature * Gha,
              Vha = FH * Gha,
              VcHa = Vha * PU) %>%
@@ -101,8 +101,8 @@ IlotDataImport <- function() {
              Mature = ifelse(is.na(Mature), 50, Mature))
 
     PlacGtotEss <- DataPlac %>%
-      filter(!is.na(Catégorie)) %>%
-      dplyr::select(-Catégorie)
+      filter(!is.na(Categorie)) %>%
+      dplyr::select(-Categorie)
 
   }
 
