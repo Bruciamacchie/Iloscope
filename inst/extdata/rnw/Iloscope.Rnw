@@ -1,0 +1,593 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[french]{babel}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyvrb}
+\usepackage{booktabs}
+\usepackage{eurosym}
+\usepackage{float}
+
+\voffset -2cm
+\hoffset 0cm
+\oddsidemargin 0cm
+\evensidemargin -0.5cm
+\textwidth 17cm
+\topmargin 1cm
+\textheight 24cm
+\parindent 0cm
+\columnsep 0.7cm
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<OptionsGenerales, include=FALSE>>=
+opts_chunk$set(concordance=TRUE,include=TRUE,tidy=FALSE)
+opts_chunk$set(size='normalsize',background='white')
+opts_chunk$set(fig.path='Figures/', dev='pdf')
+opts_chunk$set(fig.align='center',fig.show='hold')
+options(width=45)
+opts_knit$set(eval.after = 'fig.cap') # evaluate fig.cap after the chunk
+@
+
+
+<<Initialisation,echo=F,cache=F,include=F,message=F>>=
+# ----------- lancement des librairies
+library(tidyverse)
+library(sf)
+library(grid)
+library(gridExtra)
+library(xtable)
+library(raster)
+library(tcltk)
+library(ggthemes)
+library(units)
+# library(rgeos)
+# library(iloscopes)
+# library(fasterize)
+
+# ----------- Import ----
+rm(list = ls()) # fait le menage dans l environnement
+
+load("../Data/tables/TableIlot.RData")
+
+Equipe = st_read("../Equipes/Equipes.shp")
+Solution = st_read("../Equipes/Solution.shp")
+
+names(Equipe)=c("Type","Valeur","ID","geometry")
+
+Limites = IsoleType(PolyShape,"Limites")
+IlotsProches = IsoleType(PolyShape,"Ilots")
+Protection = IsoleType(PolyShape,"Protection")
+Captage = IsoleType(PolyShape,"Captages")
+Limites = IsoleType(PolyShape,"Limites")
+BufferRoutes = IsoleType(PolyShape,"BufferRoutes")
+BufferLignes= IsoleType(PolyShape,"BufferLignes")
+Peuplements = IsoleType(PolyShape,"Peuplement")
+Captages = IsoleType(PolyShape,"Captages")
+HS =Peuplements[which(Peuplements$Valeur=="Hors_sylv"),]
+BDN = IsoleType(PolyShape,"BDN")
+st_bbox(BufferLignes)
+
+# ----------- Conversion
+
+# Equipe <- st_transform(Equipe, st_crs(Limites)) # harmonise système de projection
+
+#################### Choix #######################
+# boîte dialogue : choisit dans une liste.
+Liste <- unique(Equipe$Valeur)
+Choix <- tk_select.list(as.character(Liste), preselect = NULL, multiple = FALSE, title = "Choisir une equipe")
+if (Choix==""){
+  Choix="1"
+}
+Equipe <- Equipe %>%  filter(Valeur==Choix)
+##################################################
+# Sol est la solution proposée par l'équipe. On ne garde que les propositions à l'intérieur des Limites (au cas où les propositions aient été mal tracées)
+Sol <- st_intersection(Limites, Equipe)  %>%
+  dplyr::select(ID.1)
+names(Sol)[1]=c("ID")
+
+HS = st_intersection(HS, Limites)
+
+@
+
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%% image à rajouter
+%\includegraphics[width=\textwidth,height=3cm]{Images/logo.png}
+
+\begin{center}
+{\huge Résultats de l'équipe \Sexpr{Choix}}
+\end{center}
+
+\vspace*{2cm}
+\section{Introduction}
+La progression de la mise en place d'une Trame Ecologique Intra-Forestière cohérente, à l'intérieur même des «réservoirs de biodiversité» que composent les forêts (au sens de la Trame Verte et Bleue), va désormais être évaluée par nos Ministères de tutelle tous les 2 ans (Contrat d'Objectif et de Performance 2015-2020). La trame de vieux bois est destinée à maintenir la biodiversité présente, mais aussi à permettre l'expression de sa dynamique par la mobilité des espèces forestières à travers les habitats, le vieux bois et les bois morts qui leur sont indispensables (exemple des nombreuses et rares espèces saproxyliques). \\
+
+Les caractéristiques principales de cette trame sont évoquées dans l'Instruction Biodiversité de 2009 (INS 09-T-71) et reprises dans le récent guide technique Vieux bois et bois mort (2017). Elles concernent :\\
+-à l'échelle des massifs forestiers: Les Réserves Biologiques, Réserves Forestières, Réserves Naturelles;\\
+-à l'échelle des forêts des collectivités: Les îlots de sénecsence et îlots de vieillissement ;\\
+-à l'échelle des Unités de gestion (parcelles): les arbres disséminés à conserver pour la biodiversité, souvent appelés «arbres bio». (Schéma illustratif page suivante) \\
+
+Quand ces derniers sont désignés à l'occasion des opérations de gestion courante, principalement en martelages (en moyenne au moins 3 par hectares: morts sur pied de diamètre supérieur à 35 cm, Gros et Très gros à dendromicrohabitats (ex: à cavités de pic) vieux ou dépérissants), la mise en place de réserves nécessite des réflexions et des expertises beaucoup plus poussées.\\
+
+Nous ne nous attarderons ici que sur la mise en place du maillon central de la trame: les îlots de sénescence. Ils peuvent être créés :\\
+- dans le but que s'exprime au mieux la biodiversité potentielle\\
+- à la faveur d'espèces particulières.\\
+
+
+\begin{figure}[H]
+%%%%%%%%%%%%%%%%%% image à rajouter
+%\includegraphics[width=17cm]{Images/schemaTrame.pdf}
+\end{figure}
+
+Cet atelier a été conçu par Max Bruciamacchie (AgroParisTech) et Sébastien Laguet. \\
+
+\subsection*{Objectifs}
+L’objectif de l’exercice est de créer un ou plusieurs îlots de sénescence (zone laissée en libre évolution) sur une partie de la forêt de La Motte-Servolex. Cette zone d’étude fait partie du massif de l’Epine, qui a une histoire forestière : des îlots de sénescence ont déjà été retenus, des zones du massif sont placées sous des statuts de protection plus ou moins stricts. Il existe de nombreuses informations à l’échelle de la zone d’étude ou du massif. Elles sont géoréférencées et donc consultable à l’aide d’un SIG. Ces informations sont également disponibles dans le classeur que l'on vous a remis. \\
+
+Les îlots doivent être choisis pour leur intérêt au sein de la zone d'étude mais également comme compléments utiles aux statuts de protection existants en dehors de la zone d'étude, dans le but de constituer une trame écologique intra-forestière efficace.\\
+
+Les souhaits de la commune propriétaire concernant la proposition à établir sont :\\
+- Une surface totale mise en ilot n'exédant pas 5 pourcent de la surface ; \\
+- Une proposition assez rapidement efficace pour la biodiversité ; \\
+- Une prise en compte de ses responsabilités vis à vis du public.
+
+\subsection*{Localisation}
+
+La figure \ref{fig:carteIGN} permet de situer sur un fond IGN25, les limites de la zone d'étude ainsi que les accès. La figure \ref{fig:Ilots} permet de localiser les îlots de sénescence déjà présents à proximité de la zone.
+
+<<carteIGN, echo=FALSE, size='footnotesize', include=TRUE, fig.width=6, fig.height=8, fig.cap="Localisation de la zone d'étude", fig.keep='last', fig.pos='H', warning=F>>=
+par(mar=c(0, 0, 0, 0) + 0.1)
+plot(Scan25, axes=FALSE, asp=1)
+plot(st_geometry(Limites), col=alpha('red', 0.1), add=T)
+@
+
+<<Ilots, echo=FALSE, size='footnotesize', include=TRUE, fig.width=7, fig.height=9, fig.cap="Localisation des îlots existants en dehors de la zone d'étude", fig.keep='last', fig.pos='H',warning=F>>=
+CP <- st_buffer(st_as_sfc(st_bbox(Limites)), dist=1000)
+Ilots <- st_intersection(IlotsProches, CP)
+plot(CP)
+plot(Scan25)
+plot(Protection, col = alpha('pink', 0.5), add=T)
+plot(Limites, col = alpha('blue', 0.5), add=T)
+plot(IlotsProches, col = alpha('red'), add=T)
+@
+
+\subsection*{Informations disponibles}
+Elles peuvent être regroupées par grands thèmes :
+\begin{itemize}
+\item  Peuplements
+\item  Milieux : pente, altitude, stations forestières
+\item  Variables dendrométriques : surface terrière totale, GB, TGB, feuillus et résineux, composition de G par essences, importance de la régénération, hauteur dominante, volumes.
+\item  Gestion : ancienneté des coupes, coûts d'exploitation/accessibilité, groupe aménagement (avec hors-sylviculture)
+\item  Enjeux écologiques : liste des espèces patrimoniales présentes connues aujourd'hui (non-exhaustive), occupation des mares existantes
+\item  Enjeux autres : périmètre sécurité autour des sites d’accueil du public, périmètre de captage, patrimoine culturel, risques (chute de pierre)
+\item  Statuts de protection : ZNIEFF, PNR, RNR du Lac d'Aiguebelette, Ilots de sénescence proches.
+\item  Naturalité : maturité des peuplements (importance des gros bois), bois mort au sol, type d’arbres bio
+\item  Continuité : arbres habitats déjà inventoriés, corridors régionaux
+\item  Supports cartographiques : Scan 25 de l’IGN et orthophotographie infra-rouge et couleur.
+\end{itemize}
+
+
+
+%\newpage
+\section{Caractéristiques de la zone d'étude}
+
+\subsection{Caractéristiques dendrométriques}
+La maturité des peuplements est un critère de plus en plus évoqué quant à son intérêt pour la biodiversité forestière (Janssen, 2016).\\
+La présence d'une forte quantité de gros et très gros bois feuillus est primoridale pour une grande partie de la biodiversité forestière (ex. Lachat et Bütler, 2008).\\
+La figure \ref{fig:DendroBis} présente 4 des variables les plus importantes pour caractériser la maturité des peuplements : surface terrière totale, surface terrière des gros bois, surface terrière des gros bois de votre essence la plus intéressante pour la biodiversité,et hauteur dominante.\\
+
+
+<<DendroBis, echo=F, size='footnotesize', fig.height=4, fig.cap="Cartographie des principales variables dendrométriques : surface terrière totale, surface terrière des gros bois, surface terrière des bois d'une essence particulière, hauteur dominante",fig.pos='H'>>=
+
+########################################### souci dans l'affichage avec les limites
+
+# boîte dialogue : choisit dans une liste.
+Liste <- unique(G_essence_par_placette$Essence)
+Choix <- "1"
+Choix <- tk_select.list(as.character(Liste), preselect = NULL, multiple = FALSE, title = "Choisir une essence riche en micro-habitats/favorable à la biodiversité")
+G_essence = Inventaire_Placettes %>%
+  filter((Categorie=='GB'|Categorie=='TGB')&(Essence==Choix)) %>%
+  left_join(Placettes, by="Id_placette") %>%
+  st_as_sf()
+
+
+MyTheme <- theme_minimal() +
+  theme(axis.text = element_blank(), axis.ticks = element_blank()) +
+  theme(plot.title = element_text(family='Times', size=14, face = "bold"))
+
+p1 <- ggplot() +
+  geom_sf(data=Limites, col="blue") +
+  geom_sf(data=Placettes, aes(size=G_tot), alpha=0.5) +
+  MyTheme + guides(size=F) + ggtitle("Gha")
+
+p2 <- ggplot() +
+  geom_sf(data=Limites, col="blue") +
+  geom_sf(data=Placettes, aes(size=G_GB), alpha=0.5) +
+  MyTheme + guides(size=F) + ggtitle("GB")
+
+p3 <- ggplot() +
+   geom_sf(data=Limites, col="blue") +
+  geom_sf(data=G_essence, aes(size=G_m2), alpha=0.5) +
+  MyTheme + guides(size=F) + ggtitle(paste("G(T)GB",Choix,sep="_"))
+
+p4 <- ggplot() +
+  geom_sf(data=Limites, col="blue") +
+  geom_sf(data=Placettes, aes(size=H0), alpha=0.5) +
+  MyTheme + guides(size=F) + ggtitle("H0")
+
+grid.arrange(p1, p2, p3, p4, ncol=4)
+@
+
+
+\subsection{Caractéristiques écologiques et économiques}
+
+La figure \ref{fig:EcoloEcono} permet d'apprécier la répartition de l'intérêt écologique potentiel (à gauche) et de la valeur de consommation (à droite) sur la zone d'étude.\\
+Ici, l'intérêt écologique est mesuré en sommant la surface terrière des gros bois, pondérée par un indice de richesse en biodiversité propre à chaque essence (choisi par le responsable de l'iloscope).
+La valeur de consommation est calculée en multipliant les volumes par les prix unitaires des arbres sur pied. Toutes choses étant égales par ailleurs, les bois bord route servant de référence, le prix des bois sur pied seront d'autant plus faibles que leur exploitation est difficile.
+
+
+<<EcoloEcono, echo=FALSE, size='footnotesize', include=TRUE, fig.width=3, fig.height=4, fig.cap="Cartographie de l'intérêt écologique potentiel et de la valeur de consommation.", fig.pos='H'>>=
+# tab.m <- melt(tab, id = c("PT","coords_x1","coords_x2"))
+
+#par(mfrow=c(1,2))
+
+grid_figure=raster(grid) %>% # réccupère le grid pour ratseriser le SpatialPixelDataframe (issu du krigeage)
+  disaggregate(fact=3) # le fractionne pour que l'affichage soit plus joli (plus petits pixels)
+
+sp = as(GridGMat,"Spatial") # Transforme le SpatialPixelDataframe en sp...
+grd=rasterize(sp,grid_figure, field='var1.pred',fun='last')#... pour le transformer en raser...
+plot(grd) # ...pour pouvoir faire une figure !
+plot(st_geometry(Limites), col=alpha('blue', 0.1), add=T)
+
+
+
+spVc = as(GridVc,"Spatial") # Transforme le SpatialPixelDataframe en sp...
+grdVc=rasterize(spVc,grid_figure, field='var1.pred',fun='last')#... pour le transformer en raser...
+
+plot(grdVc) # ...pour pouvoir faire une figure !
+plot(st_geometry(Limites), col=alpha('blue', 0.1), add=T)
+
+@
+
+\section{Analyse de votre proposition}
+
+\subsection{Cartographie}
+
+La figure \ref{fig:Solution} permet de localiser votre proposition (en rouge) par rapport à la zone d'étude, aux îlots existants hors zone d'étude (en vert) et au scénario retenu par le gestionnaire (en bleu).
+
+
+<<Solution, echo=FALSE, size='footnotesize', include=T, fig.width=7, fig.height=9, fig.cap="Localisation de votre proposition (en rouge) par rapport à la zone d'étude, aux îlots existants (en vert) et au scénario retenu par le gestionnaire (en bleu).", fig.pos='H'>>=
+
+
+#png(filename="plot1.png", units="cm", res=300, width=20, height=20)
+plot(st_geometry(Limites))
+plot(st_geometry(IlotsProches), col='green', add=T)
+plot(st_geometry(Solution), col = alpha('blue', 0.5), add=T)
+plot(st_geometry(Sol), col= alpha('red', 0.8), add=T)
+#dev.off()
+
+centres <- st_centroid(Sol)
+@
+
+<<Fonctions, echo=F, comment=F, error=F, warning=FALSE>>=
+CalculDistance <- function(Shape) {
+	n <- dim(Shape)[1]
+	if (n==1) {
+	  minDist = 0
+	  return(minDist)
+	} else{
+	  mat <- st_distance(Equipe,Equipe)
+	  diag(mat) <- NA
+	  minDist <- apply(mat,1,min, na.rm=T)
+	  return(minDist)
+	}
+}
+@
+
+
+
+\subsection{Caratéristiques de la proposition}
+<<Calculs,echo=F, comment=T, error=T, warning=FALSE>>=
+# ---------------- Surfaces
+SurfProjet <- set_units(st_area(Equipe), ha)
+SurfZone   <- st_area(Limites) %>%
+  set_units(ha)
+
+a <- st_intersection(Sol, GridVc) %>%
+  group_by(ID) %>% # groupe par propositions de l'équipe
+  summarise(Vc_ha = mean(var1.pred)) %>%
+  mutate(Surf = SurfProjet,
+        Vc = Vc_ha * Surf)
+st_geometry(a) <- NULL
+a = as.data.frame(a)
+
+b <- st_intersection(Sol, GridGMat) %>%
+  group_by(ID) %>%
+  summarise(GMat = mean(var1.pred))
+st_geometry(b) <- NULL
+b = as.data.frame(b)
+# remarque à enlever à terme : la fonction st_join produit des polygones et non des rasters
+# c = st_join(Sol, GridAnCoupe)
+
+# c contient la moyenne de l'ancienneté des coupes de chaque îlot proposé
+c <- st_intersection(Sol, GridAnCoupe) %>%
+  dplyr::select(1:3) %>% # on enlève la colonne ID
+  group_by(ID) %>%
+  summarise(mean(Valeur))
+st_geometry(c) <- NULL
+c = as.data.frame(c)
+# ---------------- Distances
+na <- dim(Equipe)[1]
+minDistProjet <- CalculDistance(Equipe)
+
+# ---------------- Listes
+
+ListNum   <- Equipe$ID
+ListNum   <- paste(unlist(ListNum), collapse=' ')
+
+ListSurf  <- round(a$Surf,2)
+ListSurf  <- paste(unlist(ListSurf), collapse=' ')
+
+ListMatur <- round(b$GMat,0)
+ListMatur <- paste(unlist(ListMatur), collapse=' ')
+
+ListAnc   <- round(c[2],0)
+ListAnc   <- paste(unlist(ListAnc), collapse=' ')
+
+ListCons  <- round(a$Vc/500,0)*500
+ListCons  <- paste(unlist(ListCons), collapse=' ')
+
+ListPerim <- Equipe %>% st_cast("MULTILINESTRING") %>% st_length() %>% set_units(km)
+ListPerim <- round(ListPerim, 2)
+PerimT <- sum(ListPerim)
+ListPerim <- paste(unlist(ListPerim), collapse=' ')
+PerimP <- st_intersection(BufferLignes, Equipe) %>%
+  st_difference(Equipe) %>%
+  st_cast("MULTILINESTRING") %>% st_length() %>% set_units(km)
+PerimP <- sum(PerimP)
+@
+
+
+Le tableau \ref{CoutProprio} fournit des éléments permettant d'apprécier le «coût» pour le propriétaire, avec en particulier :
+\item - l'importance en pourcentage de la surface des zones mises en îlots,
+\item - la valeur de consommation immobilisée,
+\item - la longueur en kilomètre du nouveau périmètre ainsi créé qui devra être matérialisé.
+\\Aussi, avec un coût unitaire compris entre 650 et 800 \euro{}HT/km, le coût d'investissement en matérialisation des ilots sera compris entre \Sexpr{round(PerimP,1)*650} et \Sexpr{round(PerimP,1)*800} \euro{}. Il sera à renouveler tous les 15 ans, ce qui correspond, avec un taux d'actualisation de 3\%, à un capital immobilisé compris entre \Sexpr{round(PerimP*650*1.03^15/(1.03^15-1)/100,0)*100} et \Sexpr{round(PerimP*800*1.03^15/(1.03^15-1)/100,0)*100} \euro{}.\\
+
+Face à ces différents coûts, en zone concernée, le propriétaire pourrait demander à bénéficier de subventions dans le cadre de Natura 2000 (en zones régulièrement exploitées), ou des mesures compensatoires, par exemple dans le cadre de défrichements en forêt.
+
+<<CoutProprio, echo=F, results='asis', fig.pos="h", comment=F>>=
+tab1 <- data.frame(
+	Indicateurs=c("Nombre et numéros des îlots", "Surfaces (ha)",
+								"Proportion en surface/zone d'étude (%)", "Valeurs de consommation",
+								"Périmètres (km)", "Périmètres nouveaux (km)"),
+	Detail = c(ListNum, ListSurf, NA, ListCons, ListPerim,NA), # à terme
+#	Detail = c(ListNum, NA, NA, NA, ListPerim,NA),
+	Total= c(na, sum(SurfProjet), sum(SurfProjet)/SurfZone*100, round(sum(a$Vc)/500,0)*500, PerimT, PerimP))
+#	Total= c(NA, sum(SurfProjet), sum(SurfProjet)/SurfZone*100, NA, PerimT, PerimP))
+
+print(xtable(tab1, caption = "Coût pour le propriétaire.", digits=c(0,0,0,2),
+			 label = "CoutProprio", caption.placement = "top"), include.rownames=FALSE)
+@
+
+
+<<CalculSuite,echo=F, comment=F, error=F, warning=FALSE, message=F>>=
+# ---------------- reseau sans proposition -----
+mat <- st_distance(Ilots,Ilots)
+diag(mat) <- NA
+minDist <- apply(mat,1,min, na.rm=T)
+
+Surf <- st_area(Ilots) %>%
+  set_units(ha)
+n = dim(Ilots)[1]
+# ---------------- reseau avec proposition -----
+#Equipe <- spChFIDs(Equipe, paste("Projet", row.names(Equipe), sep="_")) # evite confusion entre ID
+# La transformation en spatialPolygons permet de fusionner des shapes qui n'auraient pas la même table attributaire
+Reseau = rbind(Ilots, Equipe)
+#Reseau <- rbind(as(Ilots, "SpatialPolygons") , as(Equipe, "SpatialPolygons") )
+SurfT = st_area(Reseau) %>%
+  set_units(ha)
+#SurfT <- sapply(Reseau@polygons, function(x) x@area/10000)
+#nb <- length(Reseau@polygons)[1]
+nb = dim(Reseau)[1]
+
+mat <- st_distance(Reseau,Reseau)%>%
+  set_units(km)
+diag(mat) <- NA
+minDistReseau <- apply(mat,1,min, na.rm=T)
+
+# ---------------- Distances aux statut existants -----
+
+TabDistAvant <- st_distance(Ilots, Protection[which(Protection$Valeur=="RNR"),])%>%
+  set_units(km)
+TabDistApres = st_distance(Reseau, Protection[which(Protection$Valeur=="RNR"),])%>%
+  set_units(km)
+
+
+# Distance au reseau hors sylviculture
+nh <- dim(HS)[1]
+mat <- st_distance(Ilots, HS)%>%
+  set_units(km)
+diag(mat) =NA
+minDistReseauHsnleAvant  <- apply(mat,1,min, na.rm=T)
+
+mat <- st_distance(Reseau, HS)%>%
+  set_units(km)
+diag(mat) =NA
+minDistReseauHsnleApres  <- apply(mat,1,min, na.rm=T)
+
+
+# -------------- Solution ---------------
+#SolSurf <- sapply(Solution@polygons, function(x) x@area/10000)
+SolSurf <- st_area(Solution)%>%
+  set_units(ha)
+
+# ---------------- Accueil public -----
+Securite = BufferRoutes
+
+SurfSecu = 0 %>%
+  set_units(ha)
+Accueil = st_intersection(Equipe, Securite)
+if (dim(Accueil)[1]>0){
+  SurfSecu = st_area(Accueil) %>%
+  set_units(ha)
+}
+
+# ---------------- Perimetre captage -----
+
+SurfCaptage = 0 %>%
+  set_units(ha)
+Captage = st_intersection(Equipe, Captages)
+if (dim(Captage)[1]>0){
+  SurfCaptage = st_area(Captage)%>%
+  set_units(ha)
+}
+
+# ---------------- Station -----
+#Stations = Placettes["Station"]
+
+
+@
+
+
+Le tableau \ref{Efficacite1} permet de mesurer l'efficacité immédiate de la proposition. Il s'intéresse à la maturité (importance (G) des gros bois, avec un poids propre à chaque essence en fonction de la capacité d'accueil de biodiversité) et au laps de temps séparant la dernière coupe. Il peut être complété par le tableau \ref{Efficacite2} qui fournit le nombre d'espèces déjà recensées dans les îlots.
+
+<<Efficacite1, echo=F, results='asis', fig.pos="H", comment=F, error=FALSE>>=
+Intitul <- c("Indice de maturité (importance GB)", "Ancienneté (ans)")
+Valeurs = c(ListMatur, ListAnc)
+Moyenne = c(round(mean(b[,2]),1), round(mean(c[,2]),1))
+
+tab2 <- data.frame(Indicateurs=Intitul, Valeurs=Valeurs, Moyenne=Moyenne)
+
+print(xtable(tab2, caption = "Caractéristiques écologiques de la proposition.", digits=c(0,0,0,1),
+			 label = "Efficacite1", caption.placement = "top"), include.rownames=FALSE)
+@
+
+<<Efficacite2, echo=F, results='asis', fig.pos="H", comment=F, error=FALSE>>=
+listEsp = BDN %>%
+  st_intersection(Equipe) %>%
+  filter(!is.na(Valeur)) %>%
+  group_by(Valeur) %>%
+  summarise(Freq = n())
+
+st_geometry(listEsp)= NULL
+names(listEsp) <- c("Espèces","Nombre")
+
+print(xtable(listEsp, caption = "Liste et fréquence des espèces déjà observées dans les îlots proposés.", digits=c(0,0,1), label = "Efficacite2", caption.placement = "top"), include.rownames=FALSE)
+@
+
+
+\newpage
+\subsubsection*{Approche espèce: exemple de l'Ecureuil roux}
+
+\\
+<<Integration, echo=F, results='asis', fig.pos="H", comment=F, error=F>>=
+Intitul3 <- c("Nombre d'îlots avant proposition",
+						 "Nombre d'îlots avec la proposition",
+						 "Surface totale avant proposition (ha)",
+						 "Surface totale avec la proposition (ha)",
+						 "Surface moyenne avant proposition (ha)",
+						 "Surface moyenne avec la proposition (ha)",
+						 "Surface mini avec la proposition (ha)",
+						 "Surface maxi avec la proposition (ha)",
+						 "Distance moyenne inter-îlot avant proposition (m)",
+						 "Distance moyenne inter-îlot avec la proposition (m)",
+						 "Distance maxi inter-îlot avant proposition (m)",
+						 "Distance maxi inter-îlot avec la proposition (m)",
+						 "Distance moy à la RNR (avant)",
+						 "Distance moy à la RNR (après)",
+						 "Distance min à la RNR (avant)",
+						 "Distance min à la RNR (après)",
+						 "Distance min surfaces en libre évolution naturelle (avant)",
+						 "Distance min surfaces en libre évolution naturelle (après)"
+							)
+
+ListVar3 <- c(n, nb, sum(Surf), sum(SurfT), mean(Surf), mean(SurfT), min(SurfT), max(SurfT),
+							mean(minDist), mean(minDistReseau), max(minDist), max(minDistReseau),
+						 mean(TabDistAvant),mean(TabDistApres), min(TabDistAvant),min(TabDistApres),
+						 min(minDistReseauHsnleAvant), min(minDistReseauHsnleApres)
+						 )
+
+tab3 <- data.frame(Indicateurs=Intitul3, Detail=NA, Ensemble=ListVar3)
+
+print(xtable(tab3, caption = "Intégration par rapport aux réseaux existants.", digits=c(0,0,0,2),
+			 label = "Integration", caption.placement = "top"), include.rownames=FALSE)
+@
+
+Le tableau \ref{Integration} présente des éléments permettant d'évaluer la pertinence de la proposition dans le cadre de la Trame Ecologique Intra Forestière à l'échelle de La foret communale de La Motte-Servolex. Des caractéristiques comparées avant/après proposition, telles la surface des ilots, leur inter-distance ainsi que leur connectivité aux espaces naturels protégés (de différents types) sont fournies.
+\\L'approche espèce nécessite aussi de connaître la plus ou moins grande difficulté (le coût de transport) qu'a l'espèce à se déplacer dans les peuplements. Le tableau \ref{TabApprocheEsp} fournit les coûts de transport par types de peuplements. Ils n'ont de sens que de manière relative.
+
+
+
+<<TabApprocheEsp, echo=F, results='asis', fig.pos="H", comment=F, error=F>>=
+Cout = Types_Peuplt[,c("Type_pplt","Code")]
+names(Cout)=c("Peuplements","Cout")
+print(xtable(Cout, caption = "Coût de transport pour l'écureuil roux par type de peuplements.", digits=c(0,0,1), label = "TabApprocheEsp", caption.placement = "top"), include.rownames=FALSE)
+@
+
+\newpage
+La figure\ref{fig:ApprocheEspece} permet de visualiser à quel point la trame est favorable à l'espèce.
+
+<<ApprocheEspece, echo=F, fig.cap="Connectivité, approche espèce.", fig.width=6, fig.height=8,  fig.pos="H", error=F>>=
+Centroids = st_centroid(Equipe)
+
+r = raster(grid)
+r2 <- disaggregate(r, fact=6)
+res(r)
+
+Peuplements = Peuplements %>%
+  rename(Peuplements = Valeur) %>%
+  left_join(Cout, by = "Peuplements") %>%
+  mutate(Cout = as.numeric(Cout)) %>%
+  st_cast("POLYGON")
+
+SurfCout = fasterize(Peuplements, r2, field = "Cout", fun="last")
+
+
+T <- transition(SurfCout, function(x) 1/mean(x), 8) # 1/mean: reciprocal to get permeability
+T <- geoCorrection(T)
+A <- accCost(T, as(Centroids,"Spatial"))
+plot(A, asp=1); plot(Equipe, add=TRUE)
+invisible(text(as(centres,"Spatial"), labels=as.character(centres$ID), cex=1))
+@
+
+\\
+\\
+Le tableau \ref{Enjeux} permet de vérifier si vous avez bien tenu compte des souhaits de la commune en matière de prise en compte de ses responsabilités.
+
+<<Enjeux, echo=F, results='asis', fig.pos="H", comment=F, error=FALSE>>=
+# Intitul <- c("Surface risque accueil public (ha)", "Surface commune périmètre de captage (ha)")
+# Valeurs = c(sum(SurfSecu), sum(SurfCapt))
+Intitul <- c("Surface risque accueil public (ha)", "Surface dans captage (ha)")
+Valeurs = c(sum(SurfSecu), SurfCaptage)
+
+tab4 <- data.frame(Indicateurs=Intitul, Valeurs=c(NA,NA), Ensemble=Valeurs)
+print(xtable(tab4, caption = "Prise en compte des enjeux", digits=c(0,0,0,1),
+			 label = "Enjeux", caption.placement = "top"), include.rownames=FALSE)
+@
+
+
+\\
+\\
+\\
+\\
+\section{Bibliographie}
+
+Biache \& al. 2017 - Guide technique vieux bois et bois mort.
+
+Janssen, P. 2016 - Influence relative de l'ancienneté et de la maturité sur la biodiversité: implications pour la conservation en forêts de montagne. Thèse de l'Université de Grenoble Alpes, 340p
+
+Lachat T. \& Butler Sauvain R. 2008 - Ilots de sénescence et arbres-habitats pour augmenter la biodiversité en forêt. La Forêt: 20-21
+
+INS 09-T-71. 2009 - Conservation de la biodiversité dans la gestion courante des forêts publiques.
+
+
+
+\end{document}

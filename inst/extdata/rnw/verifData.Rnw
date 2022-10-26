@@ -1,0 +1,108 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{fancyvrb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{pgfsys}
+\usepackage{keyval}
+\usepackage{subfig}
+\usepackage{eurosym}
+\usepackage{float}
+
+
+\voffset -2cm
+\hoffset 0cm
+\oddsidemargin 0cm
+\evensidemargin -0.5cm
+\textwidth 17cm
+\topmargin 1cm
+\textheight 24cm
+\parindent 0cm
+\columnsep 0.7cm
+
+<<Librairies, include=F>>=
+library(tidyverse)
+library(sf)
+library(readxl)
+library(data.table)
+library(xtable)
+library(rstudioapi)
+library(Iloscopes)
+library(knitr)
+library(tcltk)
+@
+
+<<OptionsGenerales, include=F>>=
+opts_chunk$set(echo=F, concordance=T, tidy=F, error=F, warning = F, message=F)
+opts_chunk$set(size='normalsize',background='white')
+opts_chunk$set(fig.path='Figures/', dev='pdf')
+opts_chunk$set(fig.align='center',fig.show='hold')
+options(width=45)
+opts_knit$set(eval.after = 'fig.cap') # evaluate fig.cap after the chunk
+@
+
+
+<<Infos>>=
+# rep <- ProjetChoisir()
+
+  Nomfichs <- list.files(paste(rep, "Excel", sep="/"), pattern = "\\.xlsx$")
+  if (length(Nomfichs) > 1) {
+    NomTemp <- tk_select.list(as.character(Nomfichs), preselect = NULL,
+                            multiple = FALSE, title = "Choisir une fichier")
+
+  } else{
+    NomTemp <- fichs[1]
+  }
+infos <- read_excel(paste(rep,"Excel",NomTemp, sep="/"),
+                    sheet="Texte")
+nomProjet <- as.vector(infos[3, 3])
+@
+
+
+\begin{document}
+
+
+
+<<Imports, include=F>>=
+
+
+  # -------- Lecture du fichier Couches.xlsx ---------
+  Couche  <- read_excel(paste(rep,"Excel",NomTemp, sep="/"), sheet="Couches") %>%
+    dplyr::select(Nom)
+
+@
+
+\begin{center}
+\huge Vérification des données \\
+du projet \Sexpr{nomProjet}
+\end{center}
+
+\vspace*{2cm}
+
+
+
+
+\section{Vérification liste des couches}
+Afin de commencer sur de bonnes bases, il est nécessaire de vérifier que les noms de fichiers indiqués dans l'onglet Couche du classeur Excel sont présents dans le dossier vecteurs.
+Le tableau \ref{VerifCouches} indique si la couche est présente (OK) ou absente. Dans ce dernier régulariser en tranferant dans le dossier vecteur le fichier manquant ou s'il est présent, en le renommant de la même manière que dans votre table de données excel (attention R est sensible aux majuscule-minuscule).
+
+<<VerifCouches, results='asis', fig.pos="H">>=
+Couche <- Couche %>%
+  mutate(Correspondances = ifelse(Couche$Nom %in% list.files (paste(rep, "Vecteurs", sep="/")),
+                                  "ok", "A vérifier"))
+
+print(xtable(Couche, caption = "Liste des intitulés présents dans le excel et dans le dossier vecteur.", digits=c(0,0,1), caption.placement = "top"), include.rownames=FALSE, label= "VerifCouches")
+@
+
+\section{Vérification des numéros de placettes}
+
+\end{document}
